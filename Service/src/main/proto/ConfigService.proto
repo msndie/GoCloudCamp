@@ -1,0 +1,34 @@
+syntax = "proto3";
+package ru.zvmkm.grpc;
+import "google/protobuf/empty.proto";
+
+option java_multiple_files = true;
+
+message Property {
+  string key = 1;
+  string value = 2;
+}
+
+message Config {
+  string service = 1;
+  repeated Property data = 2;
+}
+
+message Configs {
+  repeated Config configs = 1;
+}
+
+message ConfigNameRequest {
+  string service = 1;
+}
+
+service ConfigService {
+  rpc addConfig(Config) returns (Config);
+  rpc getConfig(ConfigNameRequest) returns (Config);
+  rpc getAllVersionsOfConfig(ConfigNameRequest) returns (Configs);
+  rpc getAllConfigs(google.protobuf.Empty) returns (Configs);
+  rpc updateConfig(Config) returns (Config);
+  rpc deleteConfig(ConfigNameRequest) returns (Config);
+  rpc useConfig(ConfigNameRequest) returns (Config);
+  rpc stopConfigUse(ConfigNameRequest) returns (google.protobuf.Empty);
+}
