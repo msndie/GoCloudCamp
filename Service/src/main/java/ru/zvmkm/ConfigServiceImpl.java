@@ -10,12 +10,15 @@ import ru.zvmkm.grpc.*;
 import ru.zvmkm.services.ConfigurationsService;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class ConfigServiceImpl extends ConfigServiceGrpc.ConfigServiceImplBase {
 
     private final ConfigurationsService service;
+    private static Map<String, StreamObserver<Config>> observers = new ConcurrentHashMap<>();
 
     @Autowired
     public ConfigServiceImpl(ConfigurationsService service) {
@@ -50,6 +53,21 @@ public class ConfigServiceImpl extends ConfigServiceGrpc.ConfigServiceImplBase {
     }
 
     @Override
+    public void getAllVersionsOfConfig(ConfigNameRequest request, StreamObserver<Configs> responseObserver) {
+        if (request.getService().trim().isEmpty()) {
+            responseObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT));
+            return;
+        }
+        List<Config> list = service.findAllVersions(request.getService());
+        if (list.isEmpty()) {
+            responseObserver.onError(new StatusRuntimeException(Status.NOT_FOUND));
+        } else {
+            responseObserver.onNext(Configs.newBuilder().addAllConfigs(list).build());
+            responseObserver.onCompleted();
+        }
+    }
+
+    @Override
     public void getAllConfigs(Empty request, StreamObserver<Configs> responseObserver) {
         responseObserver.onNext(Configs.newBuilder().addAllConfigs(service.findAllConfigs()).build());
         responseObserver.onCompleted();
@@ -65,6 +83,10 @@ public class ConfigServiceImpl extends ConfigServiceGrpc.ConfigServiceImplBase {
         if (!config.isPresent()) {
             responseObserver.onError(new StatusRuntimeException(Status.NOT_FOUND));
         } else {
+            StreamObserver<Config> observer = observers.get(config.get().getService());
+            if (observer != null) {
+                observer.onNext(config.get());
+            }
             responseObserver.onNext(config.get());
             responseObserver.onCompleted();
         }
@@ -95,37 +117,52 @@ public class ConfigServiceImpl extends ConfigServiceGrpc.ConfigServiceImplBase {
         if (!config.isPresent()) {
             responseObserver.onError(new StatusRuntimeException(Status.NOT_FOUND));
         } else {
+            observers.put(request.getService(), responseObserver);
             responseObserver.onNext(config.get());
-            responseObserver.onCompleted();
+//            responseObserver.onCompleted();
         }
+//        super.useConfig(request, responseObserver);
     }
 
     @Override
     public void stopConfigUse(ConfigNameRequest request, StreamObserver<Empty> responseObserver) {
-        if (request.getService().trim().isEmpty()) {
+//        super.stopConfigUse(request, responseObserver);
+        if (request.getService().trim().isEmpty() || !observers.containsKey(request.getService())) {
             responseObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT));
-            return;
-        }
-        if (service.unmarkAsOnUse(request.getService())) {
+        } else {
+            StreamObserver<Config> observer = observers.get(request.getService());
+            observer.onCompleted();
             responseObserver.onNext(Empty.getDefaultInstance());
             responseObserver.onCompleted();
-        } else {
-            responseObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT));
         }
     }
 
-    @Override
-    public void getAllVersionsOfConfig(ConfigNameRequest request, StreamObserver<Configs> responseObserver) {
-        if (request.getService().trim().isEmpty()) {
-            responseObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT));
-            return;
-        }
-        List<Config> list = service.findAllVersions(request.getService());
-        if (list.isEmpty()) {
-            responseObserver.onError(new StatusRuntimeException(Status.NOT_FOUND));
-        } else {
-            responseObserver.onNext(Configs.newBuilder().addAllConfigs(list).build());
-            responseObserver.onCompleted();
-        }
-    }
+    //    @Override
+//    public void useConfig(ConfigNameRequest request, StreamObserver<Config> responseObserver) {
+//        if (request.getService().trim().isEmpty()) {
+//            responseObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT));
+//            return;
+//        }
+//        Optional<Config> config = service.markAsOnUse(request.getService());
+//        if (!config.isPresent()) {
+//            responseObserver.onError(new StatusRuntimeException(Status.NOT_FOUND));
+//        } else {
+//            responseObserver.onNext(config.get());
+//            responseObserver.onCompleted();
+//        }
+//    }
+//
+//    @Override
+//    public void stopConfigUse(ConfigNameRequest request, StreamObserver<Empty> responseObserver) {
+//        if (request.getService().trim().isEmpty()) {
+//            responseObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT));
+//            return;
+//        }
+//        if (service.unmarkAsOnUse(request.getService())) {
+//            responseObserver.onNext(Empty.getDefaultInstance());
+//            responseObserver.onCompleted();
+//        } else {
+//            responseObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT));
+//        }
+//    }
 }
