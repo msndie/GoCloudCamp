@@ -35,7 +35,7 @@ public class ConfigurationsServiceImpl implements ConfigurationsService {
     @Override
     public Optional<Config> deleteConfig(String name) {
         ConfigEntity entity = configRepository.findConfig(name);
-        if (entity == null || entity.isOnUse()) {
+        if (entity == null) {
             return Optional.empty();
         }
         configRepository.delete(name);
@@ -61,7 +61,7 @@ public class ConfigurationsServiceImpl implements ConfigurationsService {
         }
         list.add(ConfigEntity.fromConfigEntity(entity));
         List<Config> configEntityList = configVersionsRepository
-                .findAllConfigsStartsWith(entity.getService())
+                .findAllConfigsWithKey(entity.getService())
                 .stream()
                 .map(ConfigEntity::fromConfigEntity)
                 .collect(Collectors.toList());
@@ -77,37 +77,13 @@ public class ConfigurationsServiceImpl implements ConfigurationsService {
             return Optional.empty();
         }
         ConfigEntity newEntity = ConfigEntity.fromConfig(config);
-        newEntity.setOnUse(oldEntity.isOnUse());
-        if (!oldEntity.getService().equals(newEntity.getService())
-                && !oldEntity.getData().equals(newEntity.getData())) {
+        if (!oldEntity.getData().equals(newEntity.getData())) {
             configRepository.update(newEntity);
             configVersionsRepository.add(config.getService(),
                     config.getService() + " " + LocalDateTime.now(),
                     oldEntity);
         }
         return Optional.of(config);
-    }
-
-    @Override
-    public Optional<Config> markAsOnUse(String name) {
-        ConfigEntity entity = configRepository.findConfig(name);
-        if (entity == null) {
-            return Optional.empty();
-        }
-        entity.setOnUse(true);
-        configRepository.update(entity);
-        return Optional.of(ConfigEntity.fromConfigEntity(entity));
-    }
-
-    @Override
-    public boolean unmarkAsOnUse(String name) {
-        ConfigEntity entity = configRepository.findConfig(name);
-        if (entity == null || !entity.isOnUse()) {
-            return false;
-        }
-        entity.setOnUse(false);
-        configRepository.update(entity);
-        return true;
     }
 
     @Override

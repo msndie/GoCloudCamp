@@ -1,6 +1,5 @@
 package ru.zvmkm.models;
 
-import javafx.util.Pair;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -9,7 +8,9 @@ import ru.zvmkm.grpc.Config;
 import ru.zvmkm.grpc.Property;
 
 import java.io.Serializable;
+import java.util.AbstractMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @NoArgsConstructor
@@ -18,16 +19,14 @@ import java.util.stream.Collectors;
 @Setter
 public class ConfigEntity implements Serializable {
     private String service;
-    private List<Pair<String, String>> data;
-    private boolean onUse;
+    private List<Map.Entry<String, String>> data;
 
     public static ConfigEntity fromConfig(Config config) {
         return new ConfigEntity(config.getService(),
                 config.getDataList()
                         .stream()
-                        .map(property -> new Pair<String, String>(property.getKey(), property.getValue()))
-                        .collect(Collectors.toList())
-                , false);
+                        .map(property -> new AbstractMap.SimpleEntry<>(property.getKey(), property.getValue()))
+                        .collect(Collectors.toList()));
     }
 
     public static Config fromConfigEntity(ConfigEntity entity) {

@@ -11,7 +11,5 @@ public interface ConfigurationsService {
     Optional<Config> findConfig(String name);
     List<Config> findAllVersions(String name);
     Optional<Config> updateConfig(Config config);
-    Optional<Config> markAsOnUse(String name);
-    boolean unmarkAsOnUse(String name);
     List<Config> findAllConfigs();
 }

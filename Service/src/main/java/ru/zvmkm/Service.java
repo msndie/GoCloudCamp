@@ -1,5 +1,7 @@
 package ru.zvmkm;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +11,7 @@ import java.io.IOException;
 @org.springframework.stereotype.Service
 public class Service {
     private final ConfigServiceImpl configService;
+    private final Logger logger = LoggerFactory.getLogger(Service.class);
 
     @Autowired
     public Service(ConfigServiceImpl configService) {
@@ -17,11 +20,11 @@ public class Service {
 
     public void runService() throws IOException, InterruptedException {
         Server server = ServerBuilder
-                .forPort(8080)
+                .forPort(9090)
                 .addService(configService).build();
-        System.out.println("Starting server ...");
+        logger.info("Starting server...");
         server.start();
-        System.out.println("Server started");
+        logger.info("Server started");
         server.awaitTermination();
     }
 }

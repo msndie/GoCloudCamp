@@ -29,8 +29,6 @@ service ConfigService {
   rpc getAllConfigs(google.protobuf.Empty) returns (Configs);
   rpc updateConfig(Config) returns (Config);
   rpc deleteConfig(ConfigNameRequest) returns (Config);
-//  rpc useConfig(ConfigNameRequest) returns (Config);
-//  rpc stopConfigUse(ConfigNameRequest) returns (google.protobuf.Empty);
   rpc useConfig(ConfigNameRequest) returns (stream Config);
-  rpc stopConfigUse(ConfigNameRequest) returns (google.protobuf.Empty);
+  rpc stopConfigUseForAll(ConfigNameRequest) returns (google.protobuf.Empty);
 }

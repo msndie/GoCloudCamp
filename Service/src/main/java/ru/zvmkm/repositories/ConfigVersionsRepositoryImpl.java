@@ -30,7 +30,7 @@ public class ConfigVersionsRepositoryImpl implements ConfigVersionsRepository {
     }
 
     @Override
-    public List<ConfigEntity> findAllConfigsStartsWith(String key) {
+    public List<ConfigEntity> findAllConfigsWithKey(String key) {
         return hashOperations.values(key);
     }
 
