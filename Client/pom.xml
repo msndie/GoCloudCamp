@@ -17,10 +17,9 @@
   </properties>
 
   <dependencies>
-
     <dependency>
       <groupId>io.grpc</groupId>
-      <artifactId>grpc-netty-shaded</artifactId>
+      <artifactId>grpc-okhttp</artifactId>
       <version>1.50.0</version>
     </dependency>
     <dependency>

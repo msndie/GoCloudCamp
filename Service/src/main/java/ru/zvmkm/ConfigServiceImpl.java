@@ -36,8 +36,8 @@ public class ConfigServiceImpl extends ConfigServiceGrpc.ConfigServiceImplBase {
         } else {
             responseObserver.onNext(request);
             responseObserver.onCompleted();
+            logger.info("New config for \"" + request.getService() + "\" has been added");
         }
-        logger.info("New config for " + request.getService() + " has been added");
     }
 
     @Override
@@ -82,17 +82,16 @@ public class ConfigServiceImpl extends ConfigServiceGrpc.ConfigServiceImplBase {
             responseObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT));
             return;
         }
-        Optional<Config> config = service.updateConfig(request);
-        if (!config.isPresent()) {
+        if (!service.updateConfig(request)) {
             responseObserver.onError(new StatusRuntimeException(Status.NOT_FOUND));
         } else {
-            Set<StreamObserver<Config>> observersSet = observers.get(config.get().getService());
+            Set<StreamObserver<Config>> observersSet = observers.get(request.getService());
             if (observersSet != null) {
-                observersSet.forEach(observer -> observer.onNext(config.get()));
+                observersSet.forEach(observer -> observer.onNext(request));
             }
-            responseObserver.onNext(config.get());
+            responseObserver.onNext(request);
             responseObserver.onCompleted();
-            logger.info(request.getService() + " has been updated");
+            logger.info("\"" + request.getService() + "\" has been updated");
         }
     }
 
@@ -111,7 +110,7 @@ public class ConfigServiceImpl extends ConfigServiceGrpc.ConfigServiceImplBase {
         } else {
             responseObserver.onNext(config.get());
             responseObserver.onCompleted();
-            logger.info("Config for " + request.getService() + " has been deleted");
+            logger.info("Config for \"" + request.getService() + "\" has been deleted");
         }
     }
 
@@ -133,13 +132,13 @@ public class ConfigServiceImpl extends ConfigServiceGrpc.ConfigServiceImplBase {
                             observersSet.remove(responseObserver);
                             if (observersSet.isEmpty()) {
                                 observers.remove(request.getService());
-                                logger.info("No subscribers for " + request.getService() + " left");
+                                logger.info("No subscribers for \"" + request.getService() + "\" left");
                             }
                         }
             });
             set.add(responseObserver);
             responseObserver.onNext(config.get());
-            logger.info("New subscriber for " + request.getService());
+            logger.info("New subscriber for \"" + request.getService() + "\"");
         }
     }
 
@@ -153,7 +152,7 @@ public class ConfigServiceImpl extends ConfigServiceGrpc.ConfigServiceImplBase {
             observers.remove(request.getService());
             responseObserver.onNext(Empty.getDefaultInstance());
             responseObserver.onCompleted();
-            logger.info("All subscribers for " + request.getService() + " has been unsubscribed");
+            logger.info("All subscribers for \"" + request.getService() + "\" has been unsubscribed");
         }
     }
 }

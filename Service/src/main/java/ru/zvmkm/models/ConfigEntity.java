@@ -8,9 +8,8 @@ import ru.zvmkm.grpc.Config;
 import ru.zvmkm.grpc.Property;
 
 import java.io.Serializable;
-import java.util.AbstractMap;
+import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @NoArgsConstructor
@@ -19,17 +18,25 @@ import java.util.stream.Collectors;
 @Setter
 public class ConfigEntity implements Serializable {
     private String service;
-    private List<Map.Entry<String, String>> data;
+    private List<Pair> data;
+    private Instant instant;
 
     public static ConfigEntity fromConfig(Config config) {
+        if (config == null) {
+            return null;
+        }
         return new ConfigEntity(config.getService(),
                 config.getDataList()
                         .stream()
-                        .map(property -> new AbstractMap.SimpleEntry<>(property.getKey(), property.getValue()))
-                        .collect(Collectors.toList()));
+                        .map(property -> new Pair(property.getKey(), property.getValue()))
+                        .collect(Collectors.toList()),
+                Instant.now());
     }
 
     public static Config fromConfigEntity(ConfigEntity entity) {
+        if (entity == null) {
+            return null;
+        }
         return Config.newBuilder()
                 .setService(entity.getService())
                 .addAllData(entity.getData()

@@ -10,6 +10,6 @@ public interface ConfigurationsService {
     Optional<Config> deleteConfig(String name);
     Optional<Config> findConfig(String name);
     List<Config> findAllVersions(String name);
-    Optional<Config> updateConfig(Config config);
+    boolean updateConfig(Config config);
     List<Config> findAllConfigs();
 }

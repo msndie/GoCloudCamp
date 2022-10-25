@@ -5,11 +5,7 @@ import org.springframework.stereotype.Service;
 import ru.zvmkm.grpc.Config;
 import ru.zvmkm.models.ConfigEntity;
 import ru.zvmkm.repositories.ConfigRepository;
-import ru.zvmkm.repositories.ConfigVersionsRepository;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -17,78 +13,63 @@ import java.util.stream.Collectors;
 @Service
 public class ConfigurationsServiceImpl implements ConfigurationsService {
 
-    private final ConfigRepository configRepository;
-    private final ConfigVersionsRepository configVersionsRepository;
+    private final ConfigRepository repository;
 
     @Autowired
-    public ConfigurationsServiceImpl(ConfigRepository repository,
-                                     ConfigVersionsRepository configVersionsRepository) {
-        this.configRepository = repository;
-        this.configVersionsRepository = configVersionsRepository;
+    public ConfigurationsServiceImpl(ConfigRepository repository) {
+        this.repository = repository;
     }
 
     @Override
     public boolean addConfig(Config config) {
-        return configRepository.add(ConfigEntity.fromConfig(config));
+        if (repository.collectionExists(config.getService())) {
+            return false;
+        }
+        repository.createCollection(config.getService());
+        repository.insertInCollection(ConfigEntity.fromConfig(config), config.getService());
+        return true;
     }
 
     @Override
     public Optional<Config> deleteConfig(String name) {
-        ConfigEntity entity = configRepository.findConfig(name);
-        if (entity == null) {
-            return Optional.empty();
+        Optional<ConfigEntity> config = repository.findLastEntityInCollection(name);
+        if (config.isPresent()) {
+            repository.deleteCollection(name);
+            return Optional.of(ConfigEntity.fromConfigEntity(config.get()));
         }
-        configRepository.delete(name);
-        configVersionsRepository.delete(name);
-        return Optional.of(ConfigEntity.fromConfigEntity(entity));
+        return Optional.empty();
     }
 
     @Override
     public Optional<Config> findConfig(String name) {
-        ConfigEntity entity = configRepository.findConfig(name);
-        if (entity == null) {
-            return Optional.empty();
-        }
-        return Optional.of(ConfigEntity.fromConfigEntity(entity));
+        Optional<ConfigEntity> entity = repository.findLastEntityInCollection(name);
+        return entity.map(ConfigEntity::fromConfigEntity);
     }
 
     @Override
     public List<Config> findAllVersions(String name) {
-        ConfigEntity entity = configRepository.findConfig(name);
-        List<Config> list = new ArrayList<>();
-        if (entity == null) {
-            return list;
-        }
-        list.add(ConfigEntity.fromConfigEntity(entity));
-        List<Config> configEntityList = configVersionsRepository
-                .findAllConfigsWithKey(entity.getService())
+        return repository.findAllEntitiesInCollection(name)
                 .stream()
                 .map(ConfigEntity::fromConfigEntity)
                 .collect(Collectors.toList());
-        Collections.reverse(configEntityList);
-        list.addAll(configEntityList);
-        return list;
     }
 
     @Override
-    public Optional<Config> updateConfig(Config config) {
-        ConfigEntity oldEntity = configRepository.findConfig(config.getService());
-        if (oldEntity == null) {
-            return Optional.empty();
+    public boolean updateConfig(Config config) {
+        Optional<ConfigEntity> oldEntity = repository.findLastEntityInCollection(config.getService());
+        if (!oldEntity.isPresent()) {
+            return false;
         }
         ConfigEntity newEntity = ConfigEntity.fromConfig(config);
-        if (!oldEntity.getData().equals(newEntity.getData())) {
-            configRepository.update(newEntity);
-            configVersionsRepository.add(config.getService(),
-                    config.getService() + " " + LocalDateTime.now(),
-                    oldEntity);
+        if (!oldEntity.get().getData().equals(newEntity.getData())) {
+            repository.insertInCollection(newEntity, config.getService());
         }
-        return Optional.of(config);
+        return true;
     }
 
     @Override
     public List<Config> findAllConfigs() {
-        return configRepository.findAllConfigs().stream()
+        return repository.findAllLastEntities().stream()
                 .map(ConfigEntity::fromConfigEntity)
                 .collect(Collectors.toList());
     }
