@@ -144,8 +144,13 @@ public class ConfigServiceImpl extends ConfigServiceGrpc.ConfigServiceImplBase {
 
     @Override
     public void stopConfigUseForAll(ConfigNameRequest request, StreamObserver<Empty> responseObserver) {
-        if (request.getService().trim().isEmpty() || !observers.containsKey(request.getService())) {
+        if (request.getService().trim().isEmpty()) {
             responseObserver.onError(new StatusRuntimeException(Status.INVALID_ARGUMENT));
+            return;
+        }
+        Optional<Config> config = service.findConfig(request.getService());
+        if (!config.isPresent()) {
+            responseObserver.onError(new StatusRuntimeException(Status.NOT_FOUND));
         } else {
             Set<StreamObserver<Config>> observersSet = observers.get(request.getService());
             observersSet.forEach(StreamObserver::onCompleted);
