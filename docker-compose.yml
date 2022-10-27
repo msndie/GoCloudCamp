@@ -1,0 +1,25 @@
+services:
+    config_service:
+        image: service
+        build:
+            context: .
+            dockerfile: service.Dockerfile
+        ports:
+            - "9090:9090"
+        networks:
+            - net
+        depends_on:
+            - mongo
+        command: bash -c "java -jar /home/Service/target/ConfigurationService-1.0-jar-with-dependencies.jar"
+    mongo:
+        image: mongo:latest
+        container_name: mongo
+        restart: always
+        ports:
+            - "27017:27017"
+        networks:
+            - net
+
+networks:
+    net:
+        driver: bridge
