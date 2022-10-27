@@ -1,4 +1,4 @@
-all: up
+all: up logs
 
 up:
 	docker-compose up --build -d;
@@ -9,6 +9,9 @@ client:
 
 down:
 	docker-compose down;
+
+logs:
+	docker-compose logs;
 
 clean:
 	docker system prune -a;
