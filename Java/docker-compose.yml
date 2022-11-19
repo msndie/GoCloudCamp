@@ -2,7 +2,7 @@ services:
     config_service:
         image: service
         build:
-            context: .
+            context: ..
             dockerfile: service.Dockerfile
         ports:
             - "9090:9090"

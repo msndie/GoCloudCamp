@@ -22,10 +22,7 @@
 
 ```proto
 syntax = "proto3";
-package ru.zvmkm.grpc;
 import "google/protobuf/empty.proto";
-
-option java_multiple_files = true;
 
 message Property {
   string key = 1;
@@ -57,9 +54,12 @@ service ConfigService {
 }
 ```
 </details>
+<details>
+<summary>Java</summary>
 
 ### Сервис
-Писал я на Java, все конфиги сохраняются в mongodb, решил использовать и вместе с этим изучить gRPC, единственное чего я не понял в задании, это верисионирование, я реализовал следующим образом:
+
+Все конфиги сохраняются в mongodb, верисионирование я реализовал следующим образом:
 
 - eсли полученные данные отлючаются от текущего представления конфига в бд, я создаю "entity" которое отличается от дефолтного класса только переменной времени создания и добавляю его в коллекцию.
 
@@ -106,3 +106,10 @@ java -jar Service/target/ConfigurationService-1.0-jar-with-dependencies.jar
 java -jar Client/target/Client-1.0-jar-with-dependencies.jar
 ```
 ### Сервис доступен по адресу localhost:9090
+
+</details>
+
+<details>
+<summary>Go</summary>
+protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto/ConfigService.proto
+</details>
