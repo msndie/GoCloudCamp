@@ -1,7 +1,8 @@
 syntax = "proto3";
-package ConfigService;
-import "google/protobuf/empty.proto";
 
+package ConfigService;
+
+import "google/protobuf/empty.proto";
 option go_package = "./ConfigService";
 option java_multiple_files = true;
 
@@ -24,12 +25,12 @@ message ConfigNameRequest {
 }
 
 service ConfigService {
-  rpc addConfig(Config) returns (Config);
-  rpc getConfig(ConfigNameRequest) returns (Config);
-  rpc getAllVersionsOfConfig(ConfigNameRequest) returns (Configs);
-  rpc getAllConfigs(google.protobuf.Empty) returns (Configs);
-  rpc updateConfig(Config) returns (Config);
-  rpc deleteConfig(ConfigNameRequest) returns (Config);
-  rpc useConfig(ConfigNameRequest) returns (stream Config);
-  rpc stopConfigUseForAll(ConfigNameRequest) returns (google.protobuf.Empty);
+  rpc addConfig(Config) returns (Config) {}
+  rpc getConfig(ConfigNameRequest) returns (Config) {}
+  rpc getAllVersionsOfConfig(ConfigNameRequest) returns (Configs) {}
+  rpc getAllConfigs(google.protobuf.Empty) returns (Configs) {}
+  rpc updateConfig(Config) returns (Config) {}
+  rpc deleteConfig(ConfigNameRequest) returns (Config) {}
+  rpc useConfig(ConfigNameRequest) returns (stream Config) {}
+  rpc stopConfigUseForAll(ConfigNameRequest) returns (google.protobuf.Empty) {}
 }
