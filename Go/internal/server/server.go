@@ -19,11 +19,19 @@ func NewServer(service *service.DistributedConfigService) *Server {
 }
 
 func (s *Server) AddConfig(ctx context.Context, in *pb.Config) (*pb.Config, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddConfig not implemented")
+	b := s.service.AddConfig(in)
+	if b {
+		return in, nil
+	}
+	return in, status.Errorf(codes.Unknown, "Config already exists or error occurred")
 }
 
 func (s *Server) GetConfig(ctx context.Context, in *pb.ConfigNameRequest) (*pb.Config, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetConfig not implemented")
+	c := s.service.FindConfig(in.GetService())
+	if c != nil {
+		return c, nil
+	}
+	return nil, status.Errorf(codes.NotFound, "Config not found")
 }
 
 func (s *Server) GetAllVersionsOfConfig(ctx context.Context, in *pb.ConfigNameRequest) (*pb.Configs, error) {

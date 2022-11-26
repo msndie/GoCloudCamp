@@ -110,6 +110,6 @@ java -jar Client/target/Client-1.0-jar-with-dependencies.jar
 </details>
 
 <details>
-<summary>Go</summary>
+<summary>Go(In progress)</summary>
 protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto/ConfigService.proto
 </details>
