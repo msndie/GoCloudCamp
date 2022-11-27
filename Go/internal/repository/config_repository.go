@@ -28,10 +28,12 @@ func (c *ConfigRepository) CollectionExists(name string) (bool, error) {
 	return false, nil
 }
 
-func (c *ConfigRepository) InsertInCollection(config *ConfigService.Config) error {
+func (c *ConfigRepository) InsertInCollection(config *ConfigService.Config) (bool, error) {
 	collection := c.database.Collection(config.Service)
-	_, err := collection.InsertOne(context.TODO(), config)
-	return err
+	if _, err := collection.InsertOne(context.TODO(), config); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (c *ConfigRepository) FindLastVersionInCollection(name string) (*ConfigService.Config, error) {
@@ -40,7 +42,7 @@ func (c *ConfigRepository) FindLastVersionInCollection(name string) (*ConfigServ
 	if err != nil {
 		return nil, err
 	}
-	var result []bson.M
+	var result []*ConfigService.Config
 	if err = cursor.All(context.TODO(), &result); err != nil {
 		return nil, err
 	}
@@ -48,19 +50,42 @@ func (c *ConfigRepository) FindLastVersionInCollection(name string) (*ConfigServ
 	if l == 0 {
 		return nil, nil
 	} else {
-		bs, err := bson.Marshal(result[l-1])
-		if err != nil {
-			return nil, err
-		}
-		conf := &ConfigService.Config{}
-		err = bson.Unmarshal(bs, &conf)
-		if err != nil {
-			return nil, err
-		}
-		return conf, nil
+		return result[l-1], nil
 	}
 }
 
-//func (c *ConfigRepository) FindAllInCollection(name string) ([]*ConfigService.Config, error) {
-//	collection := c.database.Collection(name)
-//}
+func (c *ConfigRepository) FindAllInCollection(name string) ([]*ConfigService.Config, error) {
+	collection := c.database.Collection(name)
+	cursor, err := collection.Find(context.TODO(), bson.D{})
+	if err != nil {
+		return nil, err
+	}
+	var result []*ConfigService.Config
+	if err = cursor.All(context.TODO(), &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *ConfigRepository) FindAllLastEntities() ([]*ConfigService.Config, error) {
+	names, err := c.database.ListCollectionNames(context.TODO(), bson.D{})
+
+	if err != nil {
+		return nil, err
+	}
+	if len(names) == 0 {
+		return nil, nil
+	}
+	configs := make([]*ConfigService.Config, len(names))
+	for i, name := range names {
+		if configs[i], err = c.FindLastVersionInCollection(name); err != nil {
+			return nil, err
+		}
+	}
+	return configs, nil
+}
+
+func (c *ConfigRepository) DeleteCollection(name string) error {
+	err := c.database.Collection(name).Drop(context.TODO())
+	return err
+}

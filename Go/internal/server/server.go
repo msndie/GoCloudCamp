@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"log"
 )
 
 type Server struct {
@@ -19,15 +20,23 @@ func NewServer(service *service.DistributedConfigService) *Server {
 }
 
 func (s *Server) AddConfig(ctx context.Context, in *pb.Config) (*pb.Config, error) {
-	b := s.service.AddConfig(in)
+	b, err := s.service.AddConfig(in)
+	if err != nil {
+		log.Print(err.Error())
+		return nil, status.Errorf(codes.Internal, "Error occurred")
+	}
 	if b {
 		return in, nil
 	}
-	return in, status.Errorf(codes.Unknown, "Config already exists or error occurred")
+	return nil, status.Errorf(codes.AlreadyExists, "Config already exists")
 }
 
 func (s *Server) GetConfig(ctx context.Context, in *pb.ConfigNameRequest) (*pb.Config, error) {
-	c := s.service.FindConfig(in.GetService())
+	c, err := s.service.FindConfig(in.GetService())
+	if err != nil {
+		log.Print(err.Error())
+		return nil, status.Errorf(codes.Internal, "Error occurred")
+	}
 	if c != nil {
 		return c, nil
 	}
@@ -35,11 +44,24 @@ func (s *Server) GetConfig(ctx context.Context, in *pb.ConfigNameRequest) (*pb.C
 }
 
 func (s *Server) GetAllVersionsOfConfig(ctx context.Context, in *pb.ConfigNameRequest) (*pb.Configs, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetAllVersionsOfConfig not implemented")
+	configs, err := s.service.GetAllVersionsOfConfig(in.Service)
+	if err != nil {
+		log.Print(err.Error())
+		return nil, status.Errorf(codes.Internal, "Error occurred")
+	}
+	if configs != nil {
+		return &pb.Configs{Configs: configs}, nil
+	}
+	return nil, status.Errorf(codes.NotFound, "Config not found")
 }
 
 func (s *Server) GetAllConfigs(ctx context.Context, in *emptypb.Empty) (*pb.Configs, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetAllConfigs not implemented")
+	configs, err := s.service.GetAllConfigs()
+	if err != nil {
+		log.Print(err.Error())
+		return nil, status.Errorf(codes.Internal, "Error occurred")
+	}
+	return &pb.Configs{Configs: configs}, nil
 }
 
 func (s *Server) UpdateConfig(ctx context.Context, in *pb.Config) (*pb.Config, error) {
