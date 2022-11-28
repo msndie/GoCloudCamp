@@ -2,10 +2,10 @@ package service
 
 import (
 	"cmd/internal/repository"
-	ConfigService "cmd/proto"
+	pb "cmd/proto"
 )
 
-func checkEquality(lhs *ConfigService.Config, rhs *ConfigService.Config) bool {
+func checkEquality(lhs *pb.Config, rhs *pb.Config) bool {
 	l1, l2 := len(lhs.Data), len(rhs.Data)
 
 	if l1 != l2 {
@@ -25,10 +25,10 @@ type DistributedConfigService struct {
 }
 
 func NewDistributedConfigService(r *repository.ConfigRepository) *DistributedConfigService {
-	return &DistributedConfigService{r}
+	return &DistributedConfigService{repository: r}
 }
 
-func (d *DistributedConfigService) AddConfig(config *ConfigService.Config) (bool, error) {
+func (d *DistributedConfigService) AddConfig(config *pb.Config) (bool, error) {
 	last, err := d.repository.FindLastVersionInCollection(config.Service)
 	if err != nil || checkEquality(last, config) {
 		return false, err
@@ -40,7 +40,7 @@ func (d *DistributedConfigService) AddConfig(config *ConfigService.Config) (bool
 	return b, nil
 }
 
-func (d *DistributedConfigService) FindConfig(name string) (*ConfigService.Config, error) {
+func (d *DistributedConfigService) FindConfig(name string) (*pb.Config, error) {
 	config, err := d.repository.FindLastVersionInCollection(name)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func (d *DistributedConfigService) FindConfig(name string) (*ConfigService.Confi
 	return config, nil
 }
 
-func (d *DistributedConfigService) GetAllVersionsOfConfig(name string) ([]*ConfigService.Config, error) {
+func (d *DistributedConfigService) GetAllVersionsOfConfig(name string) ([]*pb.Config, error) {
 	configs, err := d.repository.FindAllInCollection(name)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func (d *DistributedConfigService) GetAllVersionsOfConfig(name string) ([]*Confi
 	return configs, nil
 }
 
-func (d *DistributedConfigService) GetAllConfigs() ([]*ConfigService.Config, error) {
+func (d *DistributedConfigService) GetAllConfigs() ([]*pb.Config, error) {
 	configs, err := d.repository.FindAllLastEntities()
 	if err != nil {
 		return nil, err
@@ -70,4 +70,8 @@ func (d *DistributedConfigService) DeleteConfig(name string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (d *DistributedConfigService) IsExistsByName(name string) (bool, error) {
+	return d.repository.CollectionExists(name)
 }
