@@ -105,9 +105,26 @@ func (s *Server) UpdateConfig(ctx context.Context, in *pb.Config) (*pb.Config, e
 }
 
 func (s *Server) DeleteConfig(ctx context.Context, in *pb.ConfigNameRequest) (*pb.Config, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteConfig not implemented")
+	_, ok := s.subs[in.Service]
+	if ok {
+		return nil, status.Errorf(codes.FailedPrecondition, "config cannot be deleted")
+	} else {
+		config, err := s.service.FindConfig(in.Service)
+		if err != nil {
+			log.Print(err.Error())
+			return nil, status.Errorf(codes.Internal, "error occurred")
+		} else if config != nil {
+			if _, err = s.service.DeleteConfig(config.Service); err != nil {
+				log.Print(err.Error())
+				return nil, status.Errorf(codes.Internal, "error occurred")
+			}
+			return config, nil
+		}
+	}
+	return nil, status.Errorf(codes.NotFound, "no such config")
 }
 
+// TODO remove from map when close by client
 func (s *Server) UseConfig(in *pb.ConfigNameRequest, stream pb.ConfigService_UseConfigServer) error {
 	cfg, err := s.service.FindConfig(in.GetService())
 	if err != nil {
@@ -143,6 +160,7 @@ func (s *Server) UseConfig(in *pb.ConfigNameRequest, stream pb.ConfigService_Use
 		case res := <-ch:
 			if res == nil {
 				v.Remove(e)
+				return nil
 			}
 			err = stream.Send(res)
 			if err != nil {
@@ -154,5 +172,15 @@ func (s *Server) UseConfig(in *pb.ConfigNameRequest, stream pb.ConfigService_Use
 }
 
 func (s *Server) StopConfigUseForAll(ctx context.Context, in *pb.ConfigNameRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method StopConfigUseForAll not implemented")
+	v, ok := s.subs[in.Service]
+	if ok {
+		s.lock.Lock()
+		for e := v.Front(); e != nil; e = e.Next() {
+			e.Value.(sub).cfg <- nil
+		}
+		v.Init()
+		delete(s.subs, in.Service)
+		s.lock.Unlock()
+	}
+	return &emptypb.Empty{}, nil
 }

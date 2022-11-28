@@ -30,7 +30,7 @@ func NewDistributedConfigService(r *repository.ConfigRepository) *DistributedCon
 
 func (d *DistributedConfigService) AddConfig(config *pb.Config) (bool, error) {
 	last, err := d.repository.FindLastVersionInCollection(config.Service)
-	if err != nil || checkEquality(last, config) {
+	if err != nil || (last != nil && checkEquality(last, config)) {
 		return false, err
 	}
 	b, err := d.repository.InsertInCollection(config)
