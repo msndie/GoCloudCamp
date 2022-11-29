@@ -32,6 +32,17 @@ type sub struct {
 	cfg    chan<- *pb.Config
 }
 
+func removeFromSubs(s *Server, e *list.Element, service string) {
+	s.lock.Lock()
+	if l, ok := s.subs[service]; ok {
+		l.Remove(e)
+		if l.Len() == 0 {
+			delete(s.subs, service)
+		}
+	}
+	s.lock.Unlock()
+}
+
 func (s *Server) AddConfig(ctx context.Context, in *pb.Config) (*pb.Config, error) {
 	b, err := s.service.AddConfig(in)
 	if err != nil {
@@ -124,7 +135,6 @@ func (s *Server) DeleteConfig(ctx context.Context, in *pb.ConfigNameRequest) (*p
 	return nil, status.Errorf(codes.NotFound, "no such config")
 }
 
-// TODO remove from map when close by client
 func (s *Server) UseConfig(in *pb.ConfigNameRequest, stream pb.ConfigService_UseConfigServer) error {
 	cfg, err := s.service.FindConfig(in.GetService())
 	if err != nil {
@@ -156,14 +166,18 @@ func (s *Server) UseConfig(in *pb.ConfigNameRequest, stream pb.ConfigService_Use
 	for {
 		select {
 		case <-ctx.Done():
+			log.Print("Client disconnected. Reason: ", ctx.Err().Error())
+			removeFromSubs(s, e, in.Service)
 			return nil
 		case res := <-ch:
 			if res == nil {
-				v.Remove(e)
+				log.Print("Client forcefully disconnected")
+				removeFromSubs(s, e, in.Service)
 				return nil
 			}
 			err = stream.Send(res)
 			if err != nil {
+				removeFromSubs(s, e, in.Service)
 				log.Print(err.Error())
 				return status.Errorf(codes.Internal, "Error occurred")
 			}
