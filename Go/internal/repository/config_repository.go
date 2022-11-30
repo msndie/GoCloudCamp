@@ -11,8 +11,8 @@ type ConfigRepository struct {
 	database *mongo.Database
 }
 
-func NewConfigRepository(client *mongo.Client) *ConfigRepository {
-	return &ConfigRepository{client.Database("GoCloud")}
+func NewConfigRepository(database *mongo.Database) *ConfigRepository {
+	return &ConfigRepository{database: database}
 }
 
 func (c *ConfigRepository) CollectionExists(name string) (bool, error) {

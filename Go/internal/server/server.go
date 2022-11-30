@@ -160,6 +160,7 @@ func (s *Server) UseConfig(in *pb.ConfigNameRequest, stream pb.ConfigService_Use
 
 	if err = stream.Send(cfg); err != nil {
 		log.Print(err.Error())
+		removeFromSubs(s, e, in.Service)
 		return status.Errorf(codes.Internal, "Error occurred")
 	}
 
