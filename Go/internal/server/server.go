@@ -43,6 +43,16 @@ func removeFromSubs(s *Server, e *list.Element, service string) {
 	s.lock.Unlock()
 }
 
+func broadcastConfig(s *Server, in *pb.Config) {
+	s.lock.RLock()
+	if l, ok := s.subs[in.Service]; ok {
+		for e := l.Front(); e != nil; e = e.Next() {
+			e.Value.(sub).cfg <- in
+		}
+	}
+	s.lock.RUnlock()
+}
+
 func (s *Server) AddConfig(ctx context.Context, in *pb.Config) (*pb.Config, error) {
 	b, err := s.service.AddConfig(in)
 	if err != nil {
@@ -97,20 +107,11 @@ func (s *Server) UpdateConfig(ctx context.Context, in *pb.Config) (*pb.Config, e
 		return nil, status.Errorf(codes.NotFound, "Config not found")
 	}
 
-	b, err = s.service.AddConfig(in)
-	if err != nil {
+	if b, err = s.service.AddConfig(in); err != nil {
 		log.Print(err.Error())
 		return nil, status.Errorf(codes.Internal, "Error occurred")
-	}
-	if b {
-		s.lock.RLock()
-		l, ok := s.subs[in.Service]
-		if ok {
-			for e := l.Front(); e != nil; e = e.Next() {
-				e.Value.(sub).cfg <- in
-			}
-		}
-		s.lock.RUnlock()
+	} else if b {
+		broadcastConfig(s, in)
 	}
 	return in, nil
 }
